@@ -1,0 +1,100 @@
+version: "3.9"  
+
+name: docker-compose
+
+services:  
+  nginx:
+    image: nginx:latest
+    container_name: nginx-container
+    ports:
+      - "8080:80"  
+    volumes:
+      - nginx-data:/etc/nginx
+      - wordpress-data:/var/www/html 
+    configs:
+      - source : nginx-config
+        target : ./nginx.conf
+    networks:
+      - web-network
+    depends_on:
+      - wordpress 
+    deploy:
+      resources:
+        limits:
+          memory: 100m
+          cpus: 0.5
+      reservation: 
+          memory : 70m
+          cpus: 0.3
+      researt_policy:
+      condition: on failure
+    restart: always
+
+  mysql:
+    image: mysql:5.7 
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword  
+      MYSQL_DATABASE: wordpress  
+    networks:
+      - web-network
+    volumes:
+      - mysql-data:/var/lib/mysql  
+    configs: 
+      - source: mysql-config
+        target: ./my.cnf
+    command: --default-authentication-plugin=mysql_native_password 
+    deploy:
+      resources:
+        limits:
+          memory: 100m
+          cpus: 0.5
+      reservation: 
+        memory : 70m
+        cpus: 0.3
+      researt_policy:
+      condition: on failure
+    restart: always 
+
+  wordpress:
+    image: wordpress:latest
+    container_name: wordpress-container
+    environment:
+      WORDPRESS_DB_HOST: mysql:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: rootpassword
+    ports:
+      - "8081:80"  
+    networks:
+      - web-network
+    volumes:
+      - wordpress-data:/var/www/html
+    depends_on:
+      - mysql 
+    deploy:
+      resources:
+        limits:
+          memory: 100m
+          cpus: 0.5
+      reservation: 
+          memory : 70m
+          cpus: 0.3
+      researt_policy:
+      condition: on failure
+    restart: always
+
+networks:  
+  web-network:
+    driver: bridge
+
+volumes:  
+  nginx-data:
+  mysql-data:
+  wordpress-data:
+
+configs:  
+  nginx-config:
+    file: ./nginx.conf  
+  mysql-config:
+    file: ./my.cnf
